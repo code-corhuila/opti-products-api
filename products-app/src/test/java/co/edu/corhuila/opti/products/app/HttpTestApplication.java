@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import co.edu.corhuila.opti.products.adapter.in.http.PublicPaths;
 import co.edu.corhuila.opti.products.adapter.in.http.Rs256Verifier;
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
+import co.edu.corhuila.opti.products.application.port.in.LensUseCases;
 import co.edu.corhuila.opti.products.testsupport.Fixtures;
 import co.edu.corhuila.opti.products.testsupport.TestClock;
 
@@ -39,5 +40,10 @@ class HttpTestApplication {
     @Bean
     FrameUseCases useCases(TestClock clock) {
         return Fixtures.service(clock);
+    }
+
+    @Bean
+    LensUseCases lensUseCases(TestClock clock) {
+        return Fixtures.lensService(clock);
     }
 }
