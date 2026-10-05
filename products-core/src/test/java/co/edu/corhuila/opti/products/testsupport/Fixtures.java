@@ -31,8 +31,8 @@ public final class Fixtures {
     }
 
     public static LensUseCases lensService(TestClock clock) {
-        return new LensService(new InMemoryLensRepository(), new InMemoryIdempotencyStore(), new SequentialIds(),
-                new DirectUnitOfWork(), clock);
+        return new LensService(new InMemoryLensRepository(), new InMemoryReservationRepository(),
+                new InMemoryIdempotencyStore(), new SequentialIds(), new DirectUnitOfWork(), clock);
     }
 
     public static Lens.RegisterData validLens() {

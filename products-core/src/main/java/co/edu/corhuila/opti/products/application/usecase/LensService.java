@@ -10,9 +10,11 @@ import co.edu.corhuila.opti.products.application.port.out.Created;
 import co.edu.corhuila.opti.products.application.port.out.IdGenerator;
 import co.edu.corhuila.opti.products.application.port.out.IdempotencyStore;
 import co.edu.corhuila.opti.products.application.port.out.LensRepository;
+import co.edu.corhuila.opti.products.application.port.out.ReservationRepository;
 import co.edu.corhuila.opti.products.application.port.out.UnitOfWork;
 import co.edu.corhuila.opti.products.domain.model.DomainException;
 import co.edu.corhuila.opti.products.domain.model.Lens;
+import co.edu.corhuila.opti.products.domain.model.Reservation;
 import co.edu.corhuila.opti.products.domain.model.Validation;
 import co.edu.corhuila.opti.products.domain.model.Violations;
 
@@ -24,16 +26,20 @@ public class LensService implements LensUseCases {
 
     private static final String LENS = "LENS";
     private static final String LENS_STOCK_ENTRY = "LENS_STOCK_ENTRY";
+    private static final String LENS_RESERVATION = "LENS_RESERVATION";
+    private static final int MAX_REFERENCE = 64;
 
     private final LensRepository lenses;
+    private final ReservationRepository reservations;
     private final IdempotencyStore keys;
     private final IdGenerator ids;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public LensService(LensRepository lenses, IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork,
-                       Clock clock) {
+    public LensService(LensRepository lenses, ReservationRepository reservations, IdempotencyStore keys,
+                       IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
         this.lenses = lenses;
+        this.reservations = reservations;
         this.keys = keys;
         this.ids = ids;
         this.unitOfWork = unitOfWork;
@@ -93,6 +99,47 @@ public class LensService implements LensUseCases {
             Lens updated = lockedLens(lensId).restock(units);
             lenses.update(updated);
             return new Created<>(updated, true);
+        });
+    }
+
+    @Override
+    public Created<Reservation> reserve(UUID lensId, Integer quantity, String reference, String idempotencyKey) {
+        Violations v = new Violations();
+        String key = v.check(() -> Validation.idempotencyKey(idempotencyKey));
+        Integer units = v.check(() -> Lens.quantity(quantity, "quantity", 1));
+        String ref = v.check(() -> Validation.text(reference, "reference", 1, MAX_REFERENCE));
+        v.throwIfAny();
+        UUID reservationId = ids.next();
+        return unitOfWork.run(() -> {
+            if (!keys.claim(key, LENS_RESERVATION, reservationId)) {
+                return new Created<>(getReservation(boundTo(key, LENS_RESERVATION)), false);
+            }
+            Lens lens = lockedLens(lensId);
+            lenses.update(lens.reserve(units));
+            Reservation reservation = Reservation.hold(reservationId, lens, units, ref, clock.instant());
+            reservations.insert(reservation);
+            return new Created<>(reservation, true);
+        });
+    }
+
+    @Override
+    public Reservation getReservation(UUID id) {
+        return reservations.findById(id).orElseThrow(() -> DomainException.notFound("reservation not found"));
+    }
+
+    @Override
+    public Reservation release(UUID reservationId) {
+        return unitOfWork.run(() -> {
+            Reservation reservation = reservations.findByIdForUpdate(reservationId)
+                    .orElseThrow(() -> DomainException.notFound("reservation not found"));
+            if (reservation.isReleased()) {
+                return reservation;
+            }
+            Lens lens = lockedLens(reservation.frameId());
+            lenses.update(lens.restock(reservation.quantity()));
+            Reservation released = reservation.release();
+            reservations.update(released);
+            return released;
         });
     }
 

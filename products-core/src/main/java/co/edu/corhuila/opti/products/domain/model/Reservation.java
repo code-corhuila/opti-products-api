@@ -37,6 +37,16 @@ public final class Reservation {
                 reference, ReservationStatus.RESERVED, now);
     }
 
+    /**
+     * Same hold, for a lens. Reservation is product-agnostic by construction (id, sku, description
+     * and price snapshot): each product type gets its own reservation table, but reuses this
+     * domain class and its port instead of duplicating it.
+     */
+    public static Reservation hold(UUID id, Lens lens, int quantity, String reference, Instant now) {
+        return new Reservation(id, lens.id(), lens.sku(), lens.description(), quantity, lens.salePriceCents(),
+                reference, ReservationStatus.RESERVED, now);
+    }
+
     public static Reservation rehydrate(UUID id, UUID frameId, String sku, String description, int quantity,
                                         long unitPriceCents, String reference, ReservationStatus status,
                                         Instant createdAt) {
