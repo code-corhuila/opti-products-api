@@ -1,5 +1,6 @@
 package co.edu.corhuila.opti.products.application.port.in;
 
+import java.util.List;
 import java.util.UUID;
 
 import co.edu.corhuila.opti.products.application.port.out.Created;
@@ -17,6 +18,12 @@ public interface FrameUseCases {
 
     PageResult<Frame> search(FrameFilter filter, PageQuery page);
 
+    /** Aggregate counters for the inventory dashboard. */
+    FrameSummary summary();
+
+    /** Distinct brand names currently in the catalogue, alphabetically sorted. */
+    List<String> brands();
+
     Frame updateMinStock(UUID id, Integer minStock);
 
     Created<StockMovement> addStock(UUID frameId, Integer quantity, String reason, String idempotencyKey);
@@ -32,6 +39,16 @@ public interface FrameUseCases {
     Reservation release(UUID reservationId);
 
     /** Listing criteria; every field is optional. */
-    record FrameFilter(String query, Boolean lowStock, FrameStatus status) {
+    record FrameFilter(String query, Boolean lowStock, FrameStatus status, String brand) {
+    }
+
+    /**
+     * Inventory dashboard counters.
+     * {@code recentCount30d} is the raw count of frames created in the last 30 days: it is reported
+     * as-is (for example "+N nuevas este mes") rather than turned into an invented month-over-month
+     * percentage, since there is no honest baseline for that comparison yet.
+     */
+    record FrameSummary(long totalReferences, long lowStockCount, long outOfStockCount, long totalValueCents,
+                        long recentCount30d) {
     }
 }

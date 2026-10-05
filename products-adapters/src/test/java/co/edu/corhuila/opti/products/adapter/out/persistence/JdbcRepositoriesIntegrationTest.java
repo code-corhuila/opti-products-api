@@ -163,9 +163,9 @@ class JdbcRepositoriesIntegrationTest {
         service.register(frame("IT-LOW-" + tag, 1), key());
         service.register(frame("IT-OK-" + tag, 9), key());
 
-        assertThat(service.search(new FrameFilter("it-low-" + tag, true, null), PageQuery.first(10)).total()).isEqualTo(1);
-        assertThat(service.search(new FrameFilter("it-ok-" + tag, true, null), PageQuery.first(10)).total()).isZero();
-        assertThat(service.search(new FrameFilter("%" + tag, null, null), PageQuery.first(10)).total()).isZero();
+        assertThat(service.search(new FrameFilter("it-low-" + tag, true, null, null), PageQuery.first(10)).total()).isEqualTo(1);
+        assertThat(service.search(new FrameFilter("it-ok-" + tag, true, null, null), PageQuery.first(10)).total()).isZero();
+        assertThat(service.search(new FrameFilter("%" + tag, null, null, null), PageQuery.first(10)).total()).isZero();
     }
 
     private static Frame.RegisterData frame(String sku, int stock) {
