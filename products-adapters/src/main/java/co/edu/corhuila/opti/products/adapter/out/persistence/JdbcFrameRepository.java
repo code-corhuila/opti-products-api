@@ -13,6 +13,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameFilter;
+import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameSummary;
 import co.edu.corhuila.opti.products.application.port.in.PageQuery;
 import co.edu.corhuila.opti.products.application.port.in.PageResult;
 import co.edu.corhuila.opti.products.application.port.out.FrameRepository;
@@ -82,6 +83,10 @@ public class JdbcFrameRepository implements FrameRepository {
         if (filter.lowStock() != null) {
             conditions.add(filter.lowStock() ? "stock <= min_stock" : "stock > min_stock");
         }
+        if (filter.brand() != null && !filter.brand().isBlank()) {
+            conditions.add("brand = :brand");
+            params.put("brand", filter.brand());
+        }
         String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
 
         long total = jdbc.sql("SELECT count(*) FROM frame" + where).params(params).query(Long.class).single();
@@ -90,6 +95,29 @@ public class JdbcFrameRepository implements FrameRepository {
                 .params(params).param("limit", page.limit()).param("offset", page.offset())
                 .query(JdbcFrameRepository::map).list();
         return new PageResult<>(rows, page.page(), page.limit(), total);
+    }
+
+    @Override
+    public FrameSummary summary() {
+        return jdbc.sql("""
+                        SELECT
+                            count(*) AS total_references,
+                            count(*) FILTER (WHERE stock <= min_stock AND stock > 0) AS low_stock_count,
+                            count(*) FILTER (WHERE stock = 0) AS out_of_stock_count,
+                            coalesce(sum(sale_price_cents * stock) FILTER (WHERE status = 'ACTIVE'), 0) AS total_value_cents,
+                            count(*) FILTER (WHERE created_at >= now() - interval '30 days') AS recent_count_30d
+                        FROM frame
+                        """)
+                .query((rs, row) -> new FrameSummary(rs.getLong("total_references"), rs.getLong("low_stock_count"),
+                        rs.getLong("out_of_stock_count"), rs.getLong("total_value_cents"),
+                        rs.getLong("recent_count_30d")))
+                .single();
+    }
+
+    @Override
+    public List<String> brands() {
+        return jdbc.sql("SELECT DISTINCT brand FROM frame ORDER BY brand")
+                .query(String.class).list();
     }
 
     @Override

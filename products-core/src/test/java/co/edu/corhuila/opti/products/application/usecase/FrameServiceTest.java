@@ -52,7 +52,7 @@ class FrameServiceTest {
 
         assertThat(second.created()).isFalse();
         assertThat(second.value().id()).isEqualTo(first.value().id());
-        assertThat(service.search(new FrameFilter(null, null, null), PageQuery.first(20)).total()).isEqualTo(1);
+        assertThat(service.search(new FrameFilter(null, null, null, null), PageQuery.first(20)).total()).isEqualTo(1);
     }
 
     @Test
@@ -90,11 +90,11 @@ class FrameServiceTest {
     void minStockCanBeChangedAndDrivesTheLowStockListing() {
         UUID id = service.register(Fixtures.validFrame(), KEY).value().id();
 
-        assertThat(service.search(new FrameFilter(null, true, null), PageQuery.first(20)).total()).isZero();
+        assertThat(service.search(new FrameFilter(null, true, null, null), PageQuery.first(20)).total()).isZero();
         Frame updated = service.updateMinStock(id, 8);
 
         assertThat(updated.lowStock()).isTrue();
-        assertThat(service.search(new FrameFilter(null, true, null), PageQuery.first(20)).total()).isEqualTo(1);
+        assertThat(service.search(new FrameFilter(null, true, null, null), PageQuery.first(20)).total()).isEqualTo(1);
         assertThatThrownBy(() -> service.updateMinStock(id, -1)).isInstanceOf(DomainException.class);
     }
 
@@ -197,11 +197,39 @@ class FrameServiceTest {
             clock.advance(Duration.ofMinutes(1));
         }
 
-        var page = service.search(new FrameFilter(null, null, null), new PageQuery(1, 2));
+        var page = service.search(new FrameFilter(null, null, null, null), new PageQuery(1, 2));
 
         assertThat(page.data()).hasSize(2);
         assertThat(page.total()).isEqualTo(3);
         assertThat(page.data().get(0).sku()).isEqualTo("SKU-002");
-        assertThat(service.search(new FrameFilter("sku-001", null, null), PageQuery.first(20)).total()).isEqualTo(1);
+        assertThat(service.search(new FrameFilter("sku-001", null, null, null), PageQuery.first(20)).total()).isEqualTo(1);
+    }
+
+    @Test
+    void filtersByBrand() {
+        service.register(Fixtures.frame("SKU-RB-01"), "register-rb-01");
+        service.register(new Frame.RegisterData("SKU-OK-01", "Oakley", "Holbrook", "Black", "Plastic", "Unisex",
+                20_000_000L, 40_000_000L, 5, 1, "Main display", "Luxottica Colombia"), "register-ok-01");
+
+        assertThat(service.search(new FrameFilter(null, null, null, "Oakley"), PageQuery.first(20)).total())
+                .isEqualTo(1);
+        assertThat(service.brands()).containsExactly("Oakley", "Ray-Ban");
+    }
+
+    @Test
+    void summarizesTheInventory() {
+        service.register(Fixtures.frame("SKU-NORMAL"), "register-normal"); // stock 8, minStock 2: normal
+        service.register(new Frame.RegisterData("SKU-LOW", "Ray-Ban", "RB3025", "Gold", "Metal", "Unisex",
+                10_000_000L, 20_000_000L, 1, 2, "Main display", "Luxottica Colombia"), "register-low"); // low stock
+        service.register(new Frame.RegisterData("SKU-OUT", "Ray-Ban", "RB2140", "Black", "Acetate", "Unisex",
+                15_000_000L, 30_000_000L, 0, 3, "Main display", "Luxottica Colombia"), "register-out"); // out of stock
+
+        var summary = service.summary();
+
+        assertThat(summary.totalReferences()).isEqualTo(3);
+        assertThat(summary.lowStockCount()).isEqualTo(1);
+        assertThat(summary.outOfStockCount()).isEqualTo(1);
+        assertThat(summary.totalValueCents()).isEqualTo(52_000_000L * 8);
+        assertThat(summary.recentCount30d()).isEqualTo(3);
     }
 }

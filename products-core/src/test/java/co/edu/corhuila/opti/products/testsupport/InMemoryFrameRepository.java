@@ -1,5 +1,6 @@
 package co.edu.corhuila.opti.products.testsupport;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,10 +9,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameFilter;
+import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameSummary;
 import co.edu.corhuila.opti.products.application.port.in.PageQuery;
 import co.edu.corhuila.opti.products.application.port.in.PageResult;
 import co.edu.corhuila.opti.products.application.port.out.FrameRepository;
 import co.edu.corhuila.opti.products.domain.model.Frame;
+import co.edu.corhuila.opti.products.domain.model.FrameStatus;
 
 /** Fake of the frame store, used to test the core and the HTTP adapter without a database. */
 public class InMemoryFrameRepository implements FrameRepository {
@@ -44,6 +47,7 @@ public class InMemoryFrameRepository implements FrameRepository {
                 .filter(f -> filter.status() == null || f.status() == filter.status())
                 .filter(f -> filter.lowStock() == null || f.lowStock() == filter.lowStock())
                 .filter(f -> filter.query() == null || filter.query().isBlank() || matches(f, filter.query()))
+                .filter(f -> filter.brand() == null || filter.brand().isBlank() || f.brand().equals(filter.brand()))
                 .sorted(Comparator.comparing(Frame::createdAt).reversed().thenComparing(Frame::id))
                 .toList();
         int from = Math.min(page.offset(), matches.size());
@@ -54,6 +58,23 @@ public class InMemoryFrameRepository implements FrameRepository {
     @Override
     public void update(Frame frame) {
         byId.put(frame.id(), frame);
+    }
+
+    @Override
+    public FrameSummary summary() {
+        Instant cutoff = Instant.now().minusSeconds(30L * 24 * 3600);
+        long total = byId.size();
+        long low = byId.values().stream().filter(f -> f.stock() <= f.minStock() && f.stock() > 0).count();
+        long out = byId.values().stream().filter(f -> f.stock() == 0).count();
+        long value = byId.values().stream().filter(f -> f.status() == FrameStatus.ACTIVE)
+                .mapToLong(f -> f.salePriceCents() * f.stock()).sum();
+        long recent = byId.values().stream().filter(f -> !f.createdAt().isBefore(cutoff)).count();
+        return new FrameSummary(total, low, out, value, recent);
+    }
+
+    @Override
+    public List<String> brands() {
+        return byId.values().stream().map(Frame::brand).distinct().sorted().toList();
     }
 
     private static boolean matches(Frame f, String query) {
