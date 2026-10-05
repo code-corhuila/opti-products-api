@@ -80,6 +80,17 @@ public final class Lens {
                 stock, minStock, status, createdAt);
     }
 
+    /** Takes units out of stock for a sale. Fails when the lens is inactive or has not enough units. */
+    public Lens reserve(int quantity) {
+        if (status != LensStatus.ACTIVE) {
+            throw DomainException.rule("the lens is not active");
+        }
+        if (stock < quantity) {
+            throw DomainException.rule("insufficient stock: " + stock + " available, " + quantity + " requested");
+        }
+        return withStock(stock - quantity);
+    }
+
     /** Puts units back, either a supplier entry or a correction. */
     public Lens restock(int quantity) {
         if (status != LensStatus.ACTIVE) {

@@ -18,6 +18,7 @@ import co.edu.corhuila.opti.products.adapter.in.http.Rs256Verifier;
 import co.edu.corhuila.opti.products.adapter.out.persistence.IdempotencyKeys;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcFrameRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLensRepository;
+import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLensReservationRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcReservationRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcStockMovementRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcUnitOfWork;
@@ -113,9 +114,20 @@ class ProductsConfiguration {
         return new JdbcLensRepository(jdbc);
     }
 
+    /**
+     * Lens reservations reuse the frame-independent {@link ReservationRepository} port and the
+     * shared {@code Reservation} domain class, but are backed by their own {@code lens_reservation}
+     * table (see {@link JdbcLensReservationRepository}) instead of sharing {@code stock_reservation}
+     * with frames.
+     */
     @Bean
-    LensUseCases lensUseCases(LensRepository lenses, IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork,
-                              Clock clock) {
-        return new LensService(lenses, keys, ids, unitOfWork, clock);
+    ReservationRepository lensReservationRepository(JdbcClient jdbc) {
+        return new JdbcLensReservationRepository(jdbc);
+    }
+
+    @Bean
+    LensUseCases lensUseCases(LensRepository lenses, ReservationRepository lensReservationRepository,
+                              IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
+        return new LensService(lenses, lensReservationRepository, keys, ids, unitOfWork, clock);
     }
 }
