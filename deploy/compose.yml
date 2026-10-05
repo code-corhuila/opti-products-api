@@ -12,6 +12,10 @@ services:
       DATABASE_USER: ${PRODUCTS_DB_USER:-products_owner}
       DATABASE_PASSWORD: ${PRODUCTS_DB_PASSWORD:?set PRODUCTS_DB_PASSWORD in .env}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?set JWT_PUBLIC_KEY (public key of the identity service)}
+      FRAME_IMAGES_DIR: /data/frame-images
+    volumes:
+      # Frame photos (HU-16): written here, served read-only by the gateway from the same volume.
+      - frame-images:/data/frame-images
     networks:
       - platform
     expose:
@@ -21,3 +25,6 @@ services:
 networks:
   platform:
     external: true
+
+volumes:
+  frame-images:
