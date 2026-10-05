@@ -229,7 +229,8 @@ class FrameServiceTest {
         assertThat(summary.totalReferences()).isEqualTo(3);
         assertThat(summary.lowStockCount()).isEqualTo(1);
         assertThat(summary.outOfStockCount()).isEqualTo(1);
-        assertThat(summary.totalValueCents()).isEqualTo(52_000_000L * 8);
+        // SKU-NORMAL: 52_000_000 * 8 + SKU-LOW: 20_000_000 * 1 + SKU-OUT: 30_000_000 * 0 (ACTIVE, stock drives it to zero)
+        assertThat(summary.totalValueCents()).isEqualTo(52_000_000L * 8 + 20_000_000L);
         assertThat(summary.recentCount30d()).isEqualTo(3);
     }
 }
