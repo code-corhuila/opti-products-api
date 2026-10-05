@@ -1,5 +1,6 @@
 package co.edu.corhuila.opti.products.adapter.in.http;
 
+import java.net.URI;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import co.edu.corhuila.opti.products.adapter.in.http.LensDtos.LensResponse;
 import co.edu.corhuila.opti.products.adapter.in.http.LensDtos.MinStockRequest;
 import co.edu.corhuila.opti.products.adapter.in.http.LensDtos.RegisterLensRequest;
+import co.edu.corhuila.opti.products.adapter.in.http.LensDtos.ReservationResponse;
+import co.edu.corhuila.opti.products.adapter.in.http.LensDtos.ReserveRequest;
 import co.edu.corhuila.opti.products.adapter.in.http.LensDtos.StockEntryRequest;
 import co.edu.corhuila.opti.products.application.port.in.LensUseCases;
 import co.edu.corhuila.opti.products.application.port.in.LensUseCases.LensFilter;
@@ -23,12 +26,18 @@ import co.edu.corhuila.opti.products.domain.model.LensStatus;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/** HTTP adapter of the lens use cases. Shape and role checks here; business rules in the core. */
+/**
+ * HTTP adapter of the lens use cases. Shape and role checks here; business rules in the core.
+ * Reservations live under their own {@code /lenses/reservations/...} namespace (instead of the
+ * shared {@code /reservations/{id}} that {@link FrameController} owns) so both controllers can
+ * expose the same reservation shape without colliding on the same route.
+ */
 @RestController
 @RequestMapping("/api/v1")
 class LensController {
 
     private static final String LENSES = "/api/v1/lenses";
+    private static final String LENS_RESERVATIONS = "/api/v1/lenses/reservations";
 
     private final LensUseCases useCases;
 
@@ -73,6 +82,31 @@ class LensController {
         UUID lensId = RequestRules.uuid(id, "id");
         var result = useCases.addStock(lensId, body.quantity(), key);
         return ResponseEntity.ok(LensResponse.from(result.value()));
+    }
+
+    @PostMapping("/lenses/{id}/reservations")
+    ResponseEntity<ReservationResponse> reserve(HttpServletRequest http, @PathVariable String id,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestBody ReserveRequest body) {
+        RequestRules.requireRole(http, Roles.ADMIN, Roles.SERVICE);
+        var result = useCases.reserve(RequestRules.uuid(id, "id"), body.quantity(), body.reference(), key);
+        ReservationResponse response = ReservationResponse.from(result.value());
+        if (!result.created()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.created(URI.create(LENS_RESERVATIONS + "/" + response.id())).body(response);
+    }
+
+    @GetMapping("/lenses/reservations/{id}")
+    ReservationResponse getReservation(@PathVariable String id) {
+        return ReservationResponse.from(useCases.getReservation(RequestRules.uuid(id, "id")));
+    }
+
+    /** Compensation of a reservation: idempotent, answers 200 also when it was already released. */
+    @PostMapping("/lenses/reservations/{id}/release")
+    ReservationResponse release(HttpServletRequest http, @PathVariable String id) {
+        RequestRules.requireRole(http, Roles.ADMIN, Roles.SERVICE);
+        return ReservationResponse.from(useCases.release(RequestRules.uuid(id, "id")));
     }
 
     private static LensStatus parseStatus(String value) {

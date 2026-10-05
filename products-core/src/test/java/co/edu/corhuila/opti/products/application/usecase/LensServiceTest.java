@@ -16,6 +16,7 @@ import co.edu.corhuila.opti.products.domain.model.DomainException;
 import co.edu.corhuila.opti.products.domain.model.ErrorKind;
 import co.edu.corhuila.opti.products.domain.model.FieldError;
 import co.edu.corhuila.opti.products.domain.model.Lens;
+import co.edu.corhuila.opti.products.domain.model.ReservationStatus;
 import co.edu.corhuila.opti.products.testsupport.Fixtures;
 import co.edu.corhuila.opti.products.testsupport.TestClock;
 
@@ -108,6 +109,79 @@ class LensServiceTest {
         assertThat(service.get(id).stock()).isEqualTo(25);
         assertThatThrownBy(() -> service.addStock(id, 0, "entry-0002")).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.addStock(id, 2_000_000, "entry-0003")).isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void reservingTakesStockAndSnapshotsThePrice() {
+        UUID id = service.register(Fixtures.validLens(), KEY).value().id();
+
+        var reservation = service.reserve(id, 2, "saga-1", "reserve-0001").value();
+
+        assertThat(service.get(id).stock()).isEqualTo(18);
+        assertThat(reservation.unitPriceCents()).isEqualTo(15_000_000L);
+        assertThat(reservation.sku()).isEqualTo("LNS-MONO-150");
+        assertThat(reservation.status()).isEqualTo(ReservationStatus.RESERVED);
+    }
+
+    @Test
+    void reservingWithTheSameKeyTakesStockOnlyOnce() {
+        UUID id = service.register(Fixtures.validLens(), KEY).value().id();
+
+        var first = service.reserve(id, 2, "saga-1", "reserve-0001");
+        var replay = service.reserve(id, 2, "saga-1", "reserve-0001");
+
+        assertThat(replay.created()).isFalse();
+        assertThat(replay.value().id()).isEqualTo(first.value().id());
+        assertThat(service.get(id).stock()).isEqualTo(18);
+    }
+
+    @Test
+    void reservingMoreThanTheStockIsABusinessRuleViolation() {
+        UUID id = service.register(Fixtures.validLens(), KEY).value().id();
+
+        assertThatThrownBy(() -> service.reserve(id, 21, "saga-1", "reserve-0001"))
+                .isInstanceOfSatisfying(DomainException.class, e -> {
+                    assertThat(e.kind()).isEqualTo(ErrorKind.BUSINESS_RULE_VIOLATION);
+                    assertThat(e.getMessage()).contains("insufficient stock");
+                });
+        assertThat(service.get(id).stock()).isEqualTo(20);
+    }
+
+    @Test
+    void reserveValidatesQuantityAndReference() {
+        UUID id = service.register(Fixtures.validLens(), KEY).value().id();
+
+        assertThatThrownBy(() -> service.reserve(id, 0, " ", "x"))
+                .isInstanceOfSatisfying(DomainException.class, e ->
+                        assertThat(e.fields()).extracting(FieldError::field)
+                                .containsExactlyInAnyOrder("Idempotency-Key", "quantity", "reference"));
+    }
+
+    @Test
+    void reserveOfAnUnknownLensIsNotFound() {
+        assertThatThrownBy(() -> service.reserve(UUID.randomUUID(), 1, "saga-1", "reserve-0001"))
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.kind()).isEqualTo(ErrorKind.NOT_FOUND));
+    }
+
+    @Test
+    void releasingGivesTheStockBackOnlyOnce() {
+        UUID id = service.register(Fixtures.validLens(), KEY).value().id();
+        UUID reservationId = service.reserve(id, 3, "saga-1", "reserve-0001").value().id();
+
+        var released = service.release(reservationId);
+        var again = service.release(reservationId);
+
+        assertThat(released.status()).isEqualTo(ReservationStatus.RELEASED);
+        assertThat(again.status()).isEqualTo(ReservationStatus.RELEASED);
+        assertThat(service.get(id).stock()).isEqualTo(20);
+    }
+
+    @Test
+    void releasingAnUnknownReservationIsNotFound() {
+        assertThatThrownBy(() -> service.release(UUID.randomUUID()))
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.kind()).isEqualTo(ErrorKind.NOT_FOUND));
     }
 
     @Test
