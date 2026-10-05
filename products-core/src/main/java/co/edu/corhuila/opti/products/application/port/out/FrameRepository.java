@@ -1,9 +1,11 @@
 package co.edu.corhuila.opti.products.application.port.out;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameFilter;
+import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameSummary;
 import co.edu.corhuila.opti.products.application.port.in.PageQuery;
 import co.edu.corhuila.opti.products.application.port.in.PageResult;
 import co.edu.corhuila.opti.products.domain.model.Frame;
@@ -23,4 +25,10 @@ public interface FrameRepository {
     PageResult<Frame> search(FrameFilter filter, PageQuery page);
 
     void update(Frame frame);
+
+    /** Aggregate counters computed in the database for the inventory dashboard. */
+    FrameSummary summary();
+
+    /** Distinct brand names currently in the catalogue, alphabetically sorted. */
+    List<String> brands();
 }

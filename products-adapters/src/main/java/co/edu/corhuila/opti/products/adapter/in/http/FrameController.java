@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.FrameResponse;
+import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.FrameSummaryResponse;
 import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.MinStockRequest;
 import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.MovementResponse;
 import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.RegisterFrameRequest;
@@ -52,15 +55,27 @@ class FrameController {
     @GetMapping("/frames")
     PageResponse<FrameResponse> search(HttpServletRequest http, @RequestParam(required = false) String q,
             @RequestParam(required = false) String status, @RequestParam(required = false) String lowStock,
-            @RequestParam(required = false) String page, @RequestParam(required = false) String limit) {
-        RequestRules.onlyParams(http, "q", "status", "lowStock", "page", "limit");
-        var filter = new FrameFilter(q, parseBoolean(lowStock, "lowStock"), parseStatus(status));
+            @RequestParam(required = false) String brand, @RequestParam(required = false) String page,
+            @RequestParam(required = false) String limit) {
+        RequestRules.onlyParams(http, "q", "status", "lowStock", "brand", "page", "limit");
+        var filter = new FrameFilter(q, parseBoolean(lowStock, "lowStock"), parseStatus(status),
+                (brand == null || brand.isBlank()) ? null : brand);
         return PageResponse.of(useCases.search(filter, RequestRules.page(page, limit)).map(FrameResponse::from));
     }
 
     @GetMapping("/frames/{id}")
     FrameResponse get(@PathVariable String id) {
         return FrameResponse.from(useCases.get(RequestRules.uuid(id, "id")));
+    }
+
+    @GetMapping("/frames/summary")
+    FrameSummaryResponse summary() {
+        return FrameSummaryResponse.from(useCases.summary());
+    }
+
+    @GetMapping("/frames/brands")
+    List<String> brands() {
+        return useCases.brands();
     }
 
     @PutMapping("/frames/{id}/min-stock")
