@@ -18,7 +18,7 @@ public final class Fixtures {
     public static FrameUseCases service(TestClock clock) {
         return new FrameService(new InMemoryFrameRepository(), new InMemoryReservationRepository(),
                 new InMemoryStockMovementRepository(), new InMemoryIdempotencyStore(), new SequentialIds(),
-                new DirectUnitOfWork(), clock);
+                new DirectUnitOfWork(), clock, new InMemoryFrameImageStorage());
     }
 
     public static Frame.RegisterData validFrame() {

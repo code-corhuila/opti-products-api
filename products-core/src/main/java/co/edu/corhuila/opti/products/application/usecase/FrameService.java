@@ -2,12 +2,14 @@ package co.edu.corhuila.opti.products.application.usecase;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
 import co.edu.corhuila.opti.products.application.port.in.PageQuery;
 import co.edu.corhuila.opti.products.application.port.in.PageResult;
 import co.edu.corhuila.opti.products.application.port.out.Created;
+import co.edu.corhuila.opti.products.application.port.out.FrameImageStorage;
 import co.edu.corhuila.opti.products.application.port.out.FrameRepository;
 import co.edu.corhuila.opti.products.application.port.out.IdGenerator;
 import co.edu.corhuila.opti.products.application.port.out.IdempotencyStore;
@@ -32,6 +34,8 @@ public class FrameService implements FrameUseCases {
     private static final String STOCK_ENTRY = "STOCK_ENTRY";
     private static final String RESERVATION = "RESERVATION";
     private static final int MAX_REFERENCE = 64;
+    private static final long MAX_IMAGE_BYTES = 2L * 1024 * 1024;
+    private static final Map<String, String> IMAGE_EXTENSIONS = Map.of("image/jpeg", "jpg", "image/png", "png");
 
     private final FrameRepository frames;
     private final ReservationRepository reservations;
@@ -40,9 +44,11 @@ public class FrameService implements FrameUseCases {
     private final IdGenerator ids;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
+    private final FrameImageStorage images;
 
     public FrameService(FrameRepository frames, ReservationRepository reservations, StockMovementRepository movements,
-                        IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
+                        IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock,
+                        FrameImageStorage images) {
         this.frames = frames;
         this.reservations = reservations;
         this.movements = movements;
@@ -50,6 +56,7 @@ public class FrameService implements FrameUseCases {
         this.ids = ids;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
+        this.images = images;
     }
 
     @Override
@@ -88,6 +95,24 @@ public class FrameService implements FrameUseCases {
     @Override
     public List<String> brands() {
         return frames.brands();
+    }
+
+    @Override
+    public Frame uploadImage(UUID frameId, String contentType, byte[] content) {
+        String extension = IMAGE_EXTENSIONS.get(contentType);
+        if (extension == null) {
+            throw DomainException.validation("file", "must be a JPEG or PNG image");
+        }
+        if (content == null || content.length == 0) {
+            throw DomainException.validation("file", "must not be empty");
+        }
+        if (content.length > MAX_IMAGE_BYTES) {
+            throw DomainException.validation("file", "must be 2 MB or smaller");
+        }
+        Frame frame = get(frameId);
+        String imageUrl = images.store(frameId, extension, content);
+        frames.updateImage(frameId, imageUrl);
+        return frame.withImageUrl(imageUrl);
     }
 
     @Override

@@ -29,10 +29,11 @@ public final class Frame {
     private final String supplier;
     private final FrameStatus status;
     private final Instant createdAt;
+    private final String imageUrl;
 
     private Frame(UUID id, String sku, String brand, String model, String color, String material, String gender,
                   long costCents, long salePriceCents, int stock, int minStock, String location, String supplier,
-                  FrameStatus status, Instant createdAt) {
+                  FrameStatus status, Instant createdAt, String imageUrl) {
         this.id = id;
         this.sku = sku;
         this.brand = brand;
@@ -48,6 +49,7 @@ public final class Frame {
         this.supplier = supplier;
         this.status = status;
         this.createdAt = createdAt;
+        this.imageUrl = imageUrl;
     }
 
     /** Registers a new frame; every broken rule is reported with its field. */
@@ -73,14 +75,15 @@ public final class Frame {
         }
         v.throwIfAny();
         return new Frame(id, sku, brand, model, color, material, gender, cost, price, stock, min, location, supplier,
-                FrameStatus.ACTIVE, now);
+                FrameStatus.ACTIVE, now, null);
     }
 
     public static Frame rehydrate(UUID id, String sku, String brand, String model, String color, String material,
                                   String gender, long costCents, long salePriceCents, int stock, int minStock,
-                                  String location, String supplier, FrameStatus status, Instant createdAt) {
+                                  String location, String supplier, FrameStatus status, Instant createdAt,
+                                  String imageUrl) {
         return new Frame(id, sku, brand, model, color, material, gender, costCents, salePriceCents, stock, minStock,
-                location, supplier, status, createdAt);
+                location, supplier, status, createdAt, imageUrl);
     }
 
     /** Takes units out of stock for a sale. Fails when the frame is inactive or has not enough units. */
@@ -105,12 +108,18 @@ public final class Frame {
     public Frame withMinStock(int newMin) {
         quantityOrThrow(newMin, "minStock", 0);
         return new Frame(id, sku, brand, model, color, material, gender, costCents, salePriceCents, stock, newMin,
-                location, supplier, status, createdAt);
+                location, supplier, status, createdAt, imageUrl);
+    }
+
+    /** Points the frame to its uploaded photo (a public relative path, never the disk location). */
+    public Frame withImageUrl(String newImageUrl) {
+        return new Frame(id, sku, brand, model, color, material, gender, costCents, salePriceCents, stock, minStock,
+                location, supplier, status, createdAt, newImageUrl);
     }
 
     private Frame withStock(int newStock) {
         return new Frame(id, sku, brand, model, color, material, gender, costCents, salePriceCents, newStock, minStock,
-                location, supplier, status, createdAt);
+                location, supplier, status, createdAt, imageUrl);
     }
 
     /** A frame at or below its minimum needs restocking. */
@@ -198,6 +207,10 @@ public final class Frame {
 
     public Instant createdAt() {
         return createdAt;
+    }
+
+    public String imageUrl() {
+        return imageUrl;
     }
 
     /** Raw input to register a frame, before validation. */
