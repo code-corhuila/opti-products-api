@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /** Contract checks of the frame catalogue plus the stock rules that belong to this domain. */
@@ -121,6 +123,39 @@ class FramesHttpTest extends ContractChecks {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details[*].field", hasItem("quantity")));
         as(entry(id, "{\"quantity\":1}", "short"), "ADMIN")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details[*].field", hasItem("Idempotency-Key")));
+    }
+
+    // ---- frame photo (HU-16) ---------------------------------------------------------------
+
+    @Test
+    void adminUploadsAJpegPhotoAndTheFrameIsUpdated() throws Exception {
+        String id = registerFrame("SKU-IMG-" + next(), 1, 0);
+        MockMultipartFile file = new MockMultipartFile("file", "frame.jpg", "image/jpeg", new byte[]{1, 2, 3, 4});
+
+        as(multipart("/api/v1/frames/" + id + "/image").file(file), "ADMIN")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value("/media/frames/" + id + ".jpg"));
+        as(get(collectionPath() + "/" + id), "ADMIN").andExpect(jsonPath("$.imageUrl").value("/media/frames/" + id + ".jpg"));
+    }
+
+    @Test
+    void imageUploadRejectsAnUnsupportedTypeAndIsAdminOnly() throws Exception {
+        String id = registerFrame("SKU-IMG-BAD-" + next(), 1, 0);
+        MockMultipartFile pdf = new MockMultipartFile("file", "frame.pdf", "application/pdf", new byte[]{1});
+        MockMultipartFile jpg = new MockMultipartFile("file", "frame.jpg", "image/jpeg", new byte[]{1});
+
+        as(multipart("/api/v1/frames/" + id + "/image").file(pdf), "ADMIN")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details[*].field", hasItem("file")));
+        as(multipart("/api/v1/frames/" + id + "/image").file(jpg), "SELLER").andExpect(status().isForbidden());
+    }
+
+    @Test
+    void imageUploadRejectsAFileLargerThanTwoMegabytes() throws Exception {
+        String id = registerFrame("SKU-IMG-BIG-" + next(), 1, 0);
+        MockMultipartFile big = new MockMultipartFile("file", "frame.png", "image/png", new byte[2 * 1024 * 1024 + 1]);
+
+        as(multipart("/api/v1/frames/" + id + "/image").file(big), "ADMIN").andExpect(status().isBadRequest());
     }
 
     // ---- reservations (used by the workflow) ----------------------------------------------

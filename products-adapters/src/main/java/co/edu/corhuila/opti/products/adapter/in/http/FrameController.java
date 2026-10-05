@@ -1,6 +1,9 @@
 package co.edu.corhuila.opti.products.adapter.in.http;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -13,8 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.FrameResponse;
 import co.edu.corhuila.opti.products.adapter.in.http.FrameDtos.FrameSummaryResponse;
@@ -66,6 +68,21 @@ class FrameController {
     @GetMapping("/frames/{id}")
     FrameResponse get(@PathVariable String id) {
         return FrameResponse.from(useCases.get(RequestRules.uuid(id, "id")));
+    }
+
+    @PostMapping("/frames/{id}/image")
+    FrameResponse uploadImage(HttpServletRequest http, @PathVariable String id,
+            @RequestParam("file") MultipartFile file) {
+        RequestRules.requireRole(http, Roles.ADMIN);
+        if (file == null || file.isEmpty()) {
+            throw ApiException.validation("file", "must not be empty");
+        }
+        try {
+            return FrameResponse.from(useCases.uploadImage(RequestRules.uuid(id, "id"), file.getContentType(),
+                    file.getBytes()));
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read the uploaded file", e);
+        }
     }
 
     @GetMapping("/frames/summary")

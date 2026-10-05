@@ -26,7 +26,7 @@ public class JdbcFrameRepository implements FrameRepository {
 
     private static final String COLUMNS = """
             id, sku, brand, model, color, material, gender, cost_cents, sale_price_cents, stock, min_stock,
-            location, supplier, status, created_at""";
+            location, supplier, status, created_at, image_url""";
 
     private final JdbcClient jdbc;
 
@@ -38,12 +38,14 @@ public class JdbcFrameRepository implements FrameRepository {
     public void insert(Frame f) {
         try {
             jdbc.sql("INSERT INTO frame (" + COLUMNS + ") VALUES (:id, :sku, :brand, :model, :color, :material,"
-                            + " :gender, :cost, :price, :stock, :min, :location, :supplier, :status, :createdAt)")
+                            + " :gender, :cost, :price, :stock, :min, :location, :supplier, :status, :createdAt,"
+                            + " :imageUrl)")
                     .param("id", f.id()).param("sku", f.sku()).param("brand", f.brand()).param("model", f.model())
                     .param("color", f.color()).param("material", f.material()).param("gender", f.gender())
                     .param("cost", f.costCents()).param("price", f.salePriceCents()).param("stock", f.stock())
                     .param("min", f.minStock()).param("location", f.location()).param("supplier", f.supplier())
                     .param("status", f.status().name()).param("createdAt", Sql.ts(f.createdAt()))
+                    .param("imageUrl", f.imageUrl())
                     .update();
         } catch (DuplicateKeyException e) {
             throw DomainException.rule("a frame with this sku already exists");
@@ -127,11 +129,18 @@ public class JdbcFrameRepository implements FrameRepository {
                 .update();
     }
 
+    @Override
+    public void updateImage(UUID id, String imageUrl) {
+        jdbc.sql("UPDATE frame SET image_url = :imageUrl WHERE id = :id")
+                .param("imageUrl", imageUrl).param("id", id)
+                .update();
+    }
+
     private static Frame map(ResultSet rs, int row) throws SQLException {
         return Frame.rehydrate(rs.getObject("id", UUID.class), rs.getString("sku"), rs.getString("brand"),
                 rs.getString("model"), rs.getString("color"), rs.getString("material"), rs.getString("gender"),
                 rs.getLong("cost_cents"), rs.getLong("sale_price_cents"), rs.getInt("stock"), rs.getInt("min_stock"),
                 rs.getString("location"), rs.getString("supplier"), FrameStatus.valueOf(rs.getString("status")),
-                Sql.instant(rs, "created_at"));
+                Sql.instant(rs, "created_at"), rs.getString("image_url"));
     }
 }

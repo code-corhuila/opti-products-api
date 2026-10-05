@@ -61,6 +61,11 @@ public class InMemoryFrameRepository implements FrameRepository {
     }
 
     @Override
+    public void updateImage(UUID id, String imageUrl) {
+        byId.computeIfPresent(id, (key, frame) -> frame.withImageUrl(imageUrl));
+    }
+
+    @Override
     public FrameSummary summary() {
         Instant cutoff = Instant.now().minusSeconds(30L * 24 * 3600);
         long total = byId.size();
