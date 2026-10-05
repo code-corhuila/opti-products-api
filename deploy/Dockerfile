@@ -12,6 +12,9 @@ FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=build /src/products-app/target/products-api.jar app.jar
+# Pre-create the frame photos directory owned by "app": Docker seeds a fresh named volume from
+# whatever is already here, so the mount keeps this ownership instead of defaulting to root.
+RUN mkdir -p /data/frame-images && chown -R app:app /data/frame-images
 USER app
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
