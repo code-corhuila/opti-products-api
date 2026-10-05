@@ -41,12 +41,13 @@ final class FrameDtos {
 
     record FrameResponse(UUID id, String sku, String brand, String model, String color, String material,
                          String gender, long costCents, long salePriceCents, int stock, int minStock,
-                         boolean lowStock, String location, String supplier, FrameStatus status, Instant createdAt) {
+                         boolean lowStock, String location, String supplier, FrameStatus status, Instant createdAt,
+                         String imageUrl) {
 
         static FrameResponse from(Frame f) {
             return new FrameResponse(f.id(), f.sku(), f.brand(), f.model(), f.color(), f.material(), f.gender(),
                     f.costCents(), f.salePriceCents(), f.stock(), f.minStock(), f.lowStock(), f.location(),
-                    f.supplier(), f.status(), f.createdAt());
+                    f.supplier(), f.status(), f.createdAt(), f.imageUrl());
         }
     }
 

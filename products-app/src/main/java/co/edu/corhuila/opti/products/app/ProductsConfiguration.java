@@ -22,8 +22,10 @@ import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcReservationRepo
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcStockMovementRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcUnitOfWork;
 import co.edu.corhuila.opti.products.adapter.out.persistence.UuidGenerator;
+import co.edu.corhuila.opti.products.adapter.out.storage.FileSystemFrameImageStorage;
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
 import co.edu.corhuila.opti.products.application.port.in.LensUseCases;
+import co.edu.corhuila.opti.products.application.port.out.FrameImageStorage;
 import co.edu.corhuila.opti.products.application.port.out.FrameRepository;
 import co.edu.corhuila.opti.products.application.port.out.IdGenerator;
 import co.edu.corhuila.opti.products.application.port.out.IdempotencyStore;
@@ -95,10 +97,15 @@ class ProductsConfiguration {
     }
 
     @Bean
+    FrameImageStorage frameImageStorage(@Value("${app.frame-images.dir:/data/frame-images}") String dir) {
+        return new FileSystemFrameImageStorage(Path.of(dir));
+    }
+
+    @Bean
     FrameUseCases frameUseCases(FrameRepository frames, ReservationRepository reservations,
                                 StockMovementRepository movements, IdempotencyStore keys, IdGenerator ids,
-                                UnitOfWork unitOfWork, Clock clock) {
-        return new FrameService(frames, reservations, movements, keys, ids, unitOfWork, clock);
+                                UnitOfWork unitOfWork, Clock clock, FrameImageStorage images) {
+        return new FrameService(frames, reservations, movements, keys, ids, unitOfWork, clock, images);
     }
 
     @Bean

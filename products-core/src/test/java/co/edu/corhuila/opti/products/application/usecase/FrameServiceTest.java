@@ -233,4 +233,40 @@ class FrameServiceTest {
         assertThat(summary.totalValueCents()).isEqualTo(52_000_000L * 8 + 20_000_000L);
         assertThat(summary.recentCount30d()).isEqualTo(3);
     }
+
+    @Test
+    void storesTheUploadedPhotoAndPointsTheFrameToIt() {
+        UUID id = service.register(Fixtures.validFrame(), KEY).value().id();
+
+        Frame updated = service.uploadImage(id, "image/png", new byte[]{1, 2, 3});
+
+        assertThat(updated.imageUrl()).isEqualTo("/media/frames/" + id + ".png");
+        assertThat(service.get(id).imageUrl()).isEqualTo("/media/frames/" + id + ".png");
+    }
+
+    @Test
+    void rejectsAnImageOfTheWrongType() {
+        UUID id = service.register(Fixtures.validFrame(), KEY).value().id();
+
+        assertThatThrownBy(() -> service.uploadImage(id, "application/pdf", new byte[]{1}))
+                .isInstanceOf(DomainException.class)
+                .extracting(e -> ((DomainException) e).kind())
+                .isEqualTo(ErrorKind.VALIDATION);
+    }
+
+    @Test
+    void rejectsAnImageLargerThanTwoMegabytes() {
+        UUID id = service.register(Fixtures.validFrame(), KEY).value().id();
+
+        assertThatThrownBy(() -> service.uploadImage(id, "image/jpeg", new byte[2 * 1024 * 1024 + 1]))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void failsWithNotFoundWhenTheFrameDoesNotExist() {
+        assertThatThrownBy(() -> service.uploadImage(UUID.randomUUID(), "image/jpeg", new byte[]{1}))
+                .isInstanceOf(DomainException.class)
+                .extracting(e -> ((DomainException) e).kind())
+                .isEqualTo(ErrorKind.NOT_FOUND);
+    }
 }

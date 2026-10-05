@@ -6,6 +6,10 @@ spring:
   web:
     resources:
       add-mappings: false                    # unknown routes end in the common 404 envelope
+  servlet:
+    multipart:
+      max-file-size: 2MB                     # frame photos: jpg/png, validated again in the domain
+      max-request-size: 2MB
   jackson:
     deserialization:
       fail-on-unknown-properties: true       # a typo in a field is an error, not silently ignored
@@ -38,6 +42,10 @@ server:
 jwt:
   public-key: ${JWT_PUBLIC_KEY:}
   public-key-file: ${JWT_PUBLIC_KEY_FILE:}
+
+app:
+  frame-images:
+    dir: ${FRAME_IMAGES_DIR:/data/frame-images}   # volume shared with the gateway, which serves it under /media/frames
 
 management:
   endpoints:

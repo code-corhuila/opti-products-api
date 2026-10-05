@@ -26,6 +26,9 @@ public interface FrameRepository {
 
     void update(Frame frame);
 
+    /** Stores the public relative path of the frame's uploaded photo. */
+    void updateImage(UUID id, String imageUrl);
+
     /** Aggregate counters computed in the database for the inventory dashboard. */
     FrameSummary summary();
 
