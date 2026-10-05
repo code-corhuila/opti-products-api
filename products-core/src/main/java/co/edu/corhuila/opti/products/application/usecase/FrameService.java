@@ -1,6 +1,7 @@
 package co.edu.corhuila.opti.products.application.usecase;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
@@ -77,6 +78,16 @@ public class FrameService implements FrameUseCases {
     @Override
     public PageResult<Frame> search(FrameFilter filter, PageQuery page) {
         return frames.search(filter, page);
+    }
+
+    @Override
+    public FrameSummary summary() {
+        return frames.summary();
+    }
+
+    @Override
+    public List<String> brands() {
+        return frames.brands();
     }
 
     @Override

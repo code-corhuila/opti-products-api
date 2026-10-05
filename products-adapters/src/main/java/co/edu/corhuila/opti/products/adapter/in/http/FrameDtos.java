@@ -3,6 +3,7 @@ package co.edu.corhuila.opti.products.adapter.in.http;
 import java.time.Instant;
 import java.util.UUID;
 
+import co.edu.corhuila.opti.products.application.port.in.FrameUseCases.FrameSummary;
 import co.edu.corhuila.opti.products.domain.model.Frame;
 import co.edu.corhuila.opti.products.domain.model.FrameStatus;
 import co.edu.corhuila.opti.products.domain.model.MovementType;
@@ -46,6 +47,15 @@ final class FrameDtos {
             return new FrameResponse(f.id(), f.sku(), f.brand(), f.model(), f.color(), f.material(), f.gender(),
                     f.costCents(), f.salePriceCents(), f.stock(), f.minStock(), f.lowStock(), f.location(),
                     f.supplier(), f.status(), f.createdAt());
+        }
+    }
+
+    record FrameSummaryResponse(long totalReferences, long lowStockCount, long outOfStockCount,
+                                long totalValueCents, long recentCount30d) {
+
+        static FrameSummaryResponse from(FrameSummary s) {
+            return new FrameSummaryResponse(s.totalReferences(), s.lowStockCount(), s.outOfStockCount(),
+                    s.totalValueCents(), s.recentCount30d());
         }
     }
 
