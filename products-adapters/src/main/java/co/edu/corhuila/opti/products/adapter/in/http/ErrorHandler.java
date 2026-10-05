@@ -12,6 +12,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -81,6 +82,12 @@ public class ErrorHandler {
     ResponseEntity<ApiError> typeMismatch(MethodArgumentTypeMismatchException e) {
         return respond(ErrorCode.VALIDATION_ERROR, "the request has invalid fields",
                 List.of(new ApiError.Detail(e.getName(), "has an invalid format")));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> fileTooLarge(MaxUploadSizeExceededException e) {
+        return respond(ErrorCode.VALIDATION_ERROR, "the request has invalid fields",
+                List.of(new ApiError.Detail("file", "must be 2 MB or smaller")));
     }
 
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class,

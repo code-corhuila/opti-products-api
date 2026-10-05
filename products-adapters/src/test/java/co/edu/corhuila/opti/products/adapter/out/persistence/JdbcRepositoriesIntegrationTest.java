@@ -49,7 +49,8 @@ class JdbcRepositoriesIntegrationTest {
         var transaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         frames = new JdbcFrameRepository(jdbc);
         service = new FrameService(frames, new JdbcReservationRepository(jdbc), new JdbcStockMovementRepository(jdbc),
-                new IdempotencyKeys(jdbc), new UuidGenerator(), new JdbcUnitOfWork(transaction), Clock.systemUTC());
+                new IdempotencyKeys(jdbc), new UuidGenerator(), new JdbcUnitOfWork(transaction), Clock.systemUTC(),
+                (frameId, extension, content) -> "/media/frames/" + frameId + "." + extension);
     }
 
     @Test

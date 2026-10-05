@@ -21,6 +21,12 @@ public interface FrameUseCases {
     /** Aggregate counters for the inventory dashboard. */
     FrameSummary summary();
 
+    /**
+     * Stores the frame's photo (JPEG or PNG, at most 2&nbsp;MB) and points the frame to it.
+     * Rejects anything else with a validation error on the {@code file} field.
+     */
+    Frame uploadImage(UUID frameId, String contentType, byte[] content);
+
     /** Distinct brand names currently in the catalogue, alphabetically sorted. */
     List<String> brands();
 
