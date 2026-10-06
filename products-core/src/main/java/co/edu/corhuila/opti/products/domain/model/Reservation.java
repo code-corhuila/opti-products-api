@@ -47,6 +47,18 @@ public final class Reservation {
                 reference, ReservationStatus.RESERVED, now);
     }
 
+    /** Same hold, for an accessory. */
+    public static Reservation hold(UUID id, Accessory accessory, int quantity, String reference, Instant now) {
+        return new Reservation(id, accessory.id(), accessory.sku(), accessory.description(), quantity,
+                accessory.salePriceCents(), reference, ReservationStatus.RESERVED, now);
+    }
+
+    /** Same hold, for a liquid. */
+    public static Reservation hold(UUID id, Liquid liquid, int quantity, String reference, Instant now) {
+        return new Reservation(id, liquid.id(), liquid.sku(), liquid.description(), quantity,
+                liquid.salePriceCents(), reference, ReservationStatus.RESERVED, now);
+    }
+
     public static Reservation rehydrate(UUID id, UUID frameId, String sku, String description, int quantity,
                                         long unitPriceCents, String reference, ReservationStatus status,
                                         Instant createdAt) {
