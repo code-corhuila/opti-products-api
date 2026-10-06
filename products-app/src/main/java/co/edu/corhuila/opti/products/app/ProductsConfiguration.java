@@ -16,26 +16,36 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import co.edu.corhuila.opti.products.adapter.in.http.PublicPaths;
 import co.edu.corhuila.opti.products.adapter.in.http.Rs256Verifier;
 import co.edu.corhuila.opti.products.adapter.out.persistence.IdempotencyKeys;
+import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcAccessoryReservationRepository;
+import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcAccessoryRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcFrameRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLensRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLensReservationRepository;
+import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLiquidReservationRepository;
+import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLiquidRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcReservationRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcStockMovementRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcUnitOfWork;
 import co.edu.corhuila.opti.products.adapter.out.persistence.UuidGenerator;
 import co.edu.corhuila.opti.products.adapter.out.storage.FileSystemFrameImageStorage;
+import co.edu.corhuila.opti.products.application.port.in.AccessoryUseCases;
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
 import co.edu.corhuila.opti.products.application.port.in.LensUseCases;
+import co.edu.corhuila.opti.products.application.port.in.LiquidUseCases;
+import co.edu.corhuila.opti.products.application.port.out.AccessoryRepository;
 import co.edu.corhuila.opti.products.application.port.out.FrameImageStorage;
 import co.edu.corhuila.opti.products.application.port.out.FrameRepository;
 import co.edu.corhuila.opti.products.application.port.out.IdGenerator;
 import co.edu.corhuila.opti.products.application.port.out.IdempotencyStore;
 import co.edu.corhuila.opti.products.application.port.out.LensRepository;
+import co.edu.corhuila.opti.products.application.port.out.LiquidRepository;
 import co.edu.corhuila.opti.products.application.port.out.ReservationRepository;
 import co.edu.corhuila.opti.products.application.port.out.StockMovementRepository;
 import co.edu.corhuila.opti.products.application.port.out.UnitOfWork;
+import co.edu.corhuila.opti.products.application.usecase.AccessoryService;
 import co.edu.corhuila.opti.products.application.usecase.FrameService;
 import co.edu.corhuila.opti.products.application.usecase.LensService;
+import co.edu.corhuila.opti.products.application.usecase.LiquidService;
 
 /**
  * Composition root: the only place that knows every concrete type. The numeric limits (server
@@ -129,5 +139,40 @@ class ProductsConfiguration {
     LensUseCases lensUseCases(LensRepository lenses, ReservationRepository lensReservationRepository,
                               IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
         return new LensService(lenses, lensReservationRepository, keys, ids, unitOfWork, clock);
+    }
+
+    @Bean
+    AccessoryRepository accessoryRepository(JdbcClient jdbc) {
+        return new JdbcAccessoryRepository(jdbc);
+    }
+
+    /** Same pattern as {@link #lensReservationRepository}: own table, shared port and domain class. */
+    @Bean
+    ReservationRepository accessoryReservationRepository(JdbcClient jdbc) {
+        return new JdbcAccessoryReservationRepository(jdbc);
+    }
+
+    @Bean
+    AccessoryUseCases accessoryUseCases(AccessoryRepository accessories,
+                                        ReservationRepository accessoryReservationRepository, IdempotencyStore keys,
+                                        IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
+        return new AccessoryService(accessories, accessoryReservationRepository, keys, ids, unitOfWork, clock);
+    }
+
+    @Bean
+    LiquidRepository liquidRepository(JdbcClient jdbc) {
+        return new JdbcLiquidRepository(jdbc);
+    }
+
+    /** Same pattern as {@link #lensReservationRepository}: own table, shared port and domain class. */
+    @Bean
+    ReservationRepository liquidReservationRepository(JdbcClient jdbc) {
+        return new JdbcLiquidReservationRepository(jdbc);
+    }
+
+    @Bean
+    LiquidUseCases liquidUseCases(LiquidRepository liquids, ReservationRepository liquidReservationRepository,
+                                  IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
+        return new LiquidService(liquids, liquidReservationRepository, keys, ids, unitOfWork, clock);
     }
 }
