@@ -17,18 +17,22 @@ import co.edu.corhuila.opti.products.adapter.in.http.PublicPaths;
 import co.edu.corhuila.opti.products.adapter.in.http.Rs256Verifier;
 import co.edu.corhuila.opti.products.adapter.out.persistence.IdempotencyKeys;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcFrameRepository;
+import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcLensRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcReservationRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcStockMovementRepository;
 import co.edu.corhuila.opti.products.adapter.out.persistence.JdbcUnitOfWork;
 import co.edu.corhuila.opti.products.adapter.out.persistence.UuidGenerator;
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
+import co.edu.corhuila.opti.products.application.port.in.LensUseCases;
 import co.edu.corhuila.opti.products.application.port.out.FrameRepository;
 import co.edu.corhuila.opti.products.application.port.out.IdGenerator;
 import co.edu.corhuila.opti.products.application.port.out.IdempotencyStore;
+import co.edu.corhuila.opti.products.application.port.out.LensRepository;
 import co.edu.corhuila.opti.products.application.port.out.ReservationRepository;
 import co.edu.corhuila.opti.products.application.port.out.StockMovementRepository;
 import co.edu.corhuila.opti.products.application.port.out.UnitOfWork;
 import co.edu.corhuila.opti.products.application.usecase.FrameService;
+import co.edu.corhuila.opti.products.application.usecase.LensService;
 
 /**
  * Composition root: the only place that knows every concrete type. The numeric limits (server
@@ -95,5 +99,16 @@ class ProductsConfiguration {
                                 StockMovementRepository movements, IdempotencyStore keys, IdGenerator ids,
                                 UnitOfWork unitOfWork, Clock clock) {
         return new FrameService(frames, reservations, movements, keys, ids, unitOfWork, clock);
+    }
+
+    @Bean
+    LensRepository lensRepository(JdbcClient jdbc) {
+        return new JdbcLensRepository(jdbc);
+    }
+
+    @Bean
+    LensUseCases lensUseCases(LensRepository lenses, IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork,
+                              Clock clock) {
+        return new LensService(lenses, keys, ids, unitOfWork, clock);
     }
 }
