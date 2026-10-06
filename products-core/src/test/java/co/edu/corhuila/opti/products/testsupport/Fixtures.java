@@ -1,11 +1,17 @@
 package co.edu.corhuila.opti.products.testsupport;
 
+import co.edu.corhuila.opti.products.application.port.in.AccessoryUseCases;
 import co.edu.corhuila.opti.products.application.port.in.FrameUseCases;
 import co.edu.corhuila.opti.products.application.port.in.LensUseCases;
+import co.edu.corhuila.opti.products.application.port.in.LiquidUseCases;
+import co.edu.corhuila.opti.products.application.usecase.AccessoryService;
 import co.edu.corhuila.opti.products.application.usecase.FrameService;
 import co.edu.corhuila.opti.products.application.usecase.LensService;
+import co.edu.corhuila.opti.products.application.usecase.LiquidService;
+import co.edu.corhuila.opti.products.domain.model.Accessory;
 import co.edu.corhuila.opti.products.domain.model.Frame;
 import co.edu.corhuila.opti.products.domain.model.Lens;
+import co.edu.corhuila.opti.products.domain.model.Liquid;
 
 /** Ready-made valid inputs and a fully wired service over the fakes. */
 public final class Fixtures {
@@ -42,5 +48,31 @@ public final class Fixtures {
     public static Lens.RegisterData lens(String sku) {
         return new Lens.RegisterData(sku, "Essilor", "MONOFOCAL", "CR-39", "Anti-reflejo", 150,
                 8_000_000L, 15_000_000L, 20, 5);
+    }
+
+    public static AccessoryUseCases accessoryService(TestClock clock) {
+        return new AccessoryService(new InMemoryAccessoryRepository(), new InMemoryReservationRepository(),
+                new InMemoryIdempotencyStore(), new SequentialIds(), new DirectUnitOfWork(), clock);
+    }
+
+    public static Accessory.RegisterData validAccessory() {
+        return accessory("ACC-CASE-001");
+    }
+
+    public static Accessory.RegisterData accessory(String sku) {
+        return new Accessory.RegisterData(sku, "Opti", "Estuche", 5_000_00L, 12_000_00L, 30, 10);
+    }
+
+    public static LiquidUseCases liquidService(TestClock clock) {
+        return new LiquidService(new InMemoryLiquidRepository(), new InMemoryReservationRepository(),
+                new InMemoryIdempotencyStore(), new SequentialIds(), new DirectUnitOfWork(), clock);
+    }
+
+    public static Liquid.RegisterData validLiquid() {
+        return liquid("LIQ-CLEAN-120");
+    }
+
+    public static Liquid.RegisterData liquid(String sku) {
+        return new Liquid.RegisterData(sku, "Opti", 120, 3_000_00L, 8_000_00L, 40, 10);
     }
 }
