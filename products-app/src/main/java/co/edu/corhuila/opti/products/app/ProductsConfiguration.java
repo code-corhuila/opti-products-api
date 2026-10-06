@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -112,8 +113,13 @@ class ProductsConfiguration {
         return new FileSystemFrameImageStorage(Path.of(dir));
     }
 
+    /**
+     * HU-25 added three more {@link ReservationRepository} beans (lens/accessory/liquid), so every
+     * use-case wiring below must name its own by {@link Qualifier} instead of relying on Spring's
+     * by-parameter-name fallback, which needs the {@code -parameters} compiler flag to even work.
+     */
     @Bean
-    FrameUseCases frameUseCases(FrameRepository frames, ReservationRepository reservations,
+    FrameUseCases frameUseCases(FrameRepository frames, @Qualifier("reservationRepository") ReservationRepository reservations,
                                 StockMovementRepository movements, IdempotencyStore keys, IdGenerator ids,
                                 UnitOfWork unitOfWork, Clock clock, FrameImageStorage images) {
         return new FrameService(frames, reservations, movements, keys, ids, unitOfWork, clock, images);
@@ -136,7 +142,7 @@ class ProductsConfiguration {
     }
 
     @Bean
-    LensUseCases lensUseCases(LensRepository lenses, ReservationRepository lensReservationRepository,
+    LensUseCases lensUseCases(LensRepository lenses, @Qualifier("lensReservationRepository") ReservationRepository lensReservationRepository,
                               IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
         return new LensService(lenses, lensReservationRepository, keys, ids, unitOfWork, clock);
     }
@@ -154,8 +160,8 @@ class ProductsConfiguration {
 
     @Bean
     AccessoryUseCases accessoryUseCases(AccessoryRepository accessories,
-                                        ReservationRepository accessoryReservationRepository, IdempotencyStore keys,
-                                        IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
+                                        @Qualifier("accessoryReservationRepository") ReservationRepository accessoryReservationRepository,
+                                        IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
         return new AccessoryService(accessories, accessoryReservationRepository, keys, ids, unitOfWork, clock);
     }
 
@@ -171,7 +177,7 @@ class ProductsConfiguration {
     }
 
     @Bean
-    LiquidUseCases liquidUseCases(LiquidRepository liquids, ReservationRepository liquidReservationRepository,
+    LiquidUseCases liquidUseCases(LiquidRepository liquids, @Qualifier("liquidReservationRepository") ReservationRepository liquidReservationRepository,
                                   IdempotencyStore keys, IdGenerator ids, UnitOfWork unitOfWork, Clock clock) {
         return new LiquidService(liquids, liquidReservationRepository, keys, ids, unitOfWork, clock);
     }
