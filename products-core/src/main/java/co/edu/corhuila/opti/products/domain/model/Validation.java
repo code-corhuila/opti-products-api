@@ -15,8 +15,8 @@ public final class Validation {
         String trimmed = value == null ? "" : value.trim();
         if (trimmed.length() < min || trimmed.length() > max) {
             throw DomainException.validation(field, min == 0
-                    ? "must have at most " + max + " characters"
-                    : "must have between " + min + " and " + max + " characters");
+                    ? "Debe tener como máximo " + max + " caracteres"
+                    : "Debe tener entre " + min + " y " + max + " caracteres");
         }
         return trimmed;
     }
@@ -24,7 +24,7 @@ public final class Validation {
     /** The {@code Idempotency-Key} header of a creation: 8 to 128 characters. */
     public static String idempotencyKey(String value) {
         if (value == null || value.length() < 8 || value.length() > 128) {
-            throw validation("Idempotency-Key", "header required, 8 to 128 characters");
+            throw validation("Idempotency-Key", "Este campo requiere de 8 a 128 caracteres");
         }
         return value;
     }
@@ -54,42 +54,42 @@ public final class Validation {
         }
         String trimmed = value.trim();
         if (trimmed.length() > 160 || !EMAIL.matcher(trimmed).matches()) {
-            throw DomainException.validation(field, "must be a valid email address");
+            throw DomainException.validation(field, "Escribe un correo electrónico válido");
         }
         return trimmed.toLowerCase();
     }
 
     public static long positive(long value, String field) {
         if (value <= 0) {
-            throw DomainException.validation(field, "must be greater than zero");
+            throw DomainException.validation(field, "Debe ser mayor que cero");
         }
         return value;
     }
 
     public static long nonNegative(long value, String field) {
         if (value < 0) {
-            throw DomainException.validation(field, "must not be negative");
+            throw DomainException.validation(field, "No puede ser negativo");
         }
         return value;
     }
 
     public static int intBetween(int value, String field, int min, int max) {
         if (value < min || value > max) {
-            throw DomainException.validation(field, "must be between " + min + " and " + max);
+            throw DomainException.validation(field, "Debe estar entre " + min + " y " + max);
         }
         return value;
     }
 
     public static LocalDate pastOrToday(LocalDate value, String field, LocalDate today) {
         if (value != null && value.isAfter(today)) {
-            throw DomainException.validation(field, "must not be in the future");
+            throw DomainException.validation(field, "No puede ser una fecha futura");
         }
         return value;
     }
 
     public static <T> T required(T value, String field) {
         if (value == null) {
-            throw DomainException.validation(field, "is required");
+            throw DomainException.validation(field, "Este campo es obligatorio");
         }
         return value;
     }
