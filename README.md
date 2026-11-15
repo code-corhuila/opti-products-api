@@ -59,3 +59,9 @@ Declared in `products-app/src/main/resources/application.yml`: header/read timeo
 ## Depends on
 
 `opti-products-db` (its own PostgreSQL instance) and the public key of the identity service.
+
+## Validación en español
+
+Los límites de textos, SKU, precios en centavos, costo/precio de venta y stock continúan validándose en el servidor; sus mensajes de campo están en español. Se conservan contratos y límites existentes. El fake de inventario recibe el reloj de pruebas para que el contador de 30 días no dependa de la fecha del equipo.
+
+Validación cloud: `mvn -B verify`, incluyendo PostgreSQL aislado mediante `TEST_DATABASE_URL`: 156 tests sin fallos ni omisiones. No se cambian datos, esquemas ni contratos de persistencia.

@@ -56,7 +56,7 @@ public final class Frame {
     public static Frame register(UUID id, RegisterData d, Instant now) {
         Violations v = new Violations();
         String sku = v.check(() -> Validation.matching(d.sku(), "sku", SKU,
-                "must have 3 to 60 letters, digits, dots, dashes or underscores"));
+                "Usa de 3 a 60 letras, números, puntos, guiones o guion bajo"));
         String brand = v.check(() -> Validation.text(d.brand(), "brand", 2, 80));
         String model = v.check(() -> Validation.text(d.model(), "model", 1, 80));
         String color = v.check(() -> Validation.optionalText(d.color(), "color", 60));
@@ -70,7 +70,7 @@ public final class Frame {
         String supplier = v.check(() -> Validation.optionalText(d.supplier(), "supplier", 120));
         if (cost != null && price != null && price < cost) {
             v.check(() -> {
-                throw DomainException.validation("salePriceCents", "must be greater than or equal to costCents");
+                throw DomainException.validation("salePriceCents", "El precio de venta debe ser mayor o igual al costo");
             });
         }
         v.throwIfAny();
@@ -144,7 +144,7 @@ public final class Frame {
     private static long money(Long value, String field) {
         Validation.required(value, field);
         if (value < 0 || value > MAX_CENTS) {
-            throw DomainException.validation(field, "must be between 0 and " + MAX_CENTS + " cents");
+            throw DomainException.validation(field, "Debe estar entre 0 y " + MAX_CENTS + " centavos");
         }
         return value;
     }

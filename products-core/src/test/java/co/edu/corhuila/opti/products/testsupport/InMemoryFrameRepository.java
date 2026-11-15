@@ -19,6 +19,10 @@ import co.edu.corhuila.opti.products.domain.model.FrameStatus;
 /** Fake of the frame store, used to test the core and the HTTP adapter without a database. */
 public class InMemoryFrameRepository implements FrameRepository {
 
+    private final java.time.Clock clock;
+
+    public InMemoryFrameRepository(java.time.Clock clock) { this.clock = clock; }
+
     private final Map<UUID, Frame> byId = new LinkedHashMap<>();
 
     @Override
@@ -67,7 +71,7 @@ public class InMemoryFrameRepository implements FrameRepository {
 
     @Override
     public FrameSummary summary() {
-        Instant cutoff = Instant.now().minusSeconds(30L * 24 * 3600);
+        Instant cutoff = clock.instant().minusSeconds(30L * 24 * 3600);
         long total = byId.size();
         long low = byId.values().stream().filter(f -> f.stock() <= f.minStock() && f.stock() > 0).count();
         long out = byId.values().stream().filter(f -> f.stock() == 0).count();
